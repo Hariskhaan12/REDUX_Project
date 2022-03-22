@@ -1,9 +1,9 @@
 import React from 'react'
 
-function Input({ typ, plch, func,styl,name }) {
+function Input({ typ, plch, func,styl,name,val }) {
   return (
     <div>
-      <input name={name} type={typ} style={styl} placeholder={plch} onChange={(e)=>func(e)}>
+      <input value={val} name={name} type={typ} style={styl} placeholder={plch} onChange={(e)=>func(e)}>
       </input>
     </div>
   );

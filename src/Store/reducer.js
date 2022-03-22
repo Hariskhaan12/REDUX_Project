@@ -14,18 +14,36 @@ let initialState = {
 let reducer = (state = initialState, action) => {
   switch (action.type) {
     case "AddNewPost":
-      return{
-        ...state,
-        PostData:[...state.PostData,action.payload]
+      if(action.payload==="")
+      {
+        return{
+          ...state,
+          PostData:[]
+        }
+      }
+      else{
+        return{
+          ...state,
+          PostData:[...state.PostData,...action.payload]
+        }
+
+      }
+      case "DeletePost":
+        return{
+          ...state,
+          PostData:action.payload
+        }
+      
+      // console.log("reducer",action.payload)
+      case "EditPost":
+        return{
+          ...state,
+          PostData:[...action.payload]
+        }
       }
       
-    // console.log("reducer",action.payload)
-    case "Good":
-      console.log("Good", action.PName);
-  }
-
-  return state;
-};
+      return state;
+    };
 
 export default reducer
 

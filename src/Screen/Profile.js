@@ -1,24 +1,27 @@
-import { Modal, Card } from "react-bootstrap";
-import React, { useState } from "react";
+import { Card } from "react-bootstrap";
+import React, { useState,useEffect } from "react";
 import Button from "react-bootstrap/Button";
-import Input from "../Component/Input";
 import { connect } from "react-redux";
+import MyBootstrapModal from "../Component/MyBootstrapModal";
+import OffCanvasExample from "../Component/OffCanvas";
+
+
 
 function Profile(props) {
-  //fetching the user data from local sotrage
+
+  //fetching the login user Uid from local sotrage
+
   let Uid = JSON.parse(localStorage.getItem("LoginDetails")).Uid;
   let LoginUserName;
 
-  // to get the Login UserName 
+  // to get the Login UserName
   let Loginemail = JSON.parse(localStorage.getItem("LoginDetails")).Email;
   let UsersData = JSON.parse(localStorage.getItem("UserData"));
-  UsersData.map((val)=>{
-    if(val.Email===Loginemail)
-    {
-    LoginUserName=val.Name
+  UsersData.map((val) => {
+    if (val.Email === Loginemail) {
+      LoginUserName = val.Name;
     }
-  })
-  
+  });
 
   let initialState = {
     PostName: "",
@@ -26,38 +29,33 @@ function Profile(props) {
     PostImage: "",
     PostDesc: "",
   };
-  const [show, setShow] = useState(false); // state for opening the closing the modal
+
+  // State for Post that are created .. storing post details when user entering it.
   const [NewPostData, setNewPostData] = useState(initialState);
 
-  // function to opena nd close the modal
+  const [show, setShow] = useState(false); // state for opening the closing the modal
+  // function to open and close the modal
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  /// 2nd Modal
+  const [show2, setShow2] = useState(false);
+  const handle2Close = () => setShow2(false);
+  const handle2Show = () => setShow2(true);
+
+  // ---------------------------------
+
+    const [showOffCanvas, setShowOffCanvas] = useState(false);
+    const CanvashandleClose = () => setShowOffCanvas(false);
+    const CanvashandleShow = () => setShowOffCanvas(true);
 
   let creatPostbtnStyle = {
     position: "absolute",
     left: "85%",
     right: "10%",
-    width:"10%"
+    width: "10%",
   };
 
-  let labelStyle = {
-    // textAlign: "right",
-    // clear: "both",
-    float: "left",
-    marginRight: "15px",
-  };
-  let PostDetailsWrap = {
-    marginTop: "12px",
-  };
-
-  let InputStyle = {
-    border: "none",
-    borderBottom: "1px solid black",
-    textDecoration: "none",
-    outline: "none",
-    position: "relative",
-    left: "25px",
-  };
 
   let InputHandler = (e) => {
     let { name, value } = e.target;
@@ -66,23 +64,99 @@ function Profile(props) {
 
   // console.log(NewPostData);
   let CreatePost = () => {
-    props.dispatch({
-      type: "AddNewPost",
-      payload: {
-        UserId: Uid,
-        PName: NewPostData.PostName,
-        PP: NewPostData.PostPrice,
-        PI: NewPostData.PostImage,
-        PD: NewPostData.PostDesc,
-      },
-    });
-    // props.dispatch({ type: "Good", PName: NewPostData.PostName });
+    let LocalPostData = [];
+    let oldData = JSON.parse(localStorage.getItem("PostData"));
+    if (oldData === null) {
+      LocalPostData.push({ ...NewPostData, Uid });
+      localStorage.setItem("PostData", JSON.stringify(LocalPostData));
+      props.dispatch({ type: "AddNewPost", payload: LocalPostData });
+    } else {
+      oldData.push({ ...NewPostData, Uid });
+      localStorage.setItem("PostData", JSON.stringify(oldData));
+      // console.log("NewPost Data",[{ ...NewPostData, Uid }]);
+      props.dispatch({
+        type: "AddNewPost",
+        payload: [{ ...NewPostData, Uid }],
+      });
+    }
+
     setShow(false);
   };
 
+  let DeletePost = (index) => {
+    console.log("delete", index);
+    let localPostData = JSON.parse(localStorage.getItem("PostData"));
+    localPostData.splice(index, 1);
+    // console.log("after delete", localPostData);
+    props.dispatch({ type: "DeletePost", payload: localPostData });
+    localStorage.setItem("PostData", JSON.stringify(localPostData));
+  };
+
+  
+  let editBtnHandler = (index) => {
+    handle2Show();
+    localStorage.setItem("EditIndex",index)
+  };
+  
+  let EditPost = () => {
+    console.log(NewPostData);
+    let EditIndex=localStorage.getItem("EditIndex")
+    let prevLocalPostData=JSON.parse(localStorage.getItem("PostData"));
+ 
+    prevLocalPostData[EditIndex].PostName=NewPostData.PostName
+    prevLocalPostData[EditIndex].PostDesc=NewPostData.PostDesc
+    prevLocalPostData[EditIndex].PostImage=NewPostData.PostImage
+    prevLocalPostData[EditIndex].PostPrice=NewPostData.PostPrice
+    prevLocalPostData[EditIndex].Uid = Uid;
+
+   // after edited set back to local storage
+
+    localStorage.setItem("PostData",JSON.stringify(prevLocalPostData))
+    props.dispatch({ type: "EditPost",payload:prevLocalPostData });
+    console.log(prevLocalPostData);
+    handle2Close()
+    
+  };
+
+
+
+
+
+
+
+
+  useEffect(() => {
+    console.log("use Effect is Running");
+    let localPostData = JSON.parse(localStorage.getItem("PostData"));
+    // console.log(localPostData);
+    if (localPostData != null) {
+      props.dispatch({ type: "AddNewPost", payload: localPostData });
+    } else {
+      console.log("Local Storage data is empty");
+    }
+    // clean Up function is necessary since when we load the page again we dont
+    // want to add again to the redux state through use Effect
+    // clean up function will empty the redux state so when page load it get the data from local then add to redux
+    // this will remove the automatically add twice the data in redux state
+    return () => {
+      props.dispatch({ type: "AddNewPost", payload: "" });
+      console.log("cleanUp");
+    };
+  }, []);
+
   return (
     <div>
-      <h2 style={{marginTop:"2%",marginLeft:"2%",fontStyle:"italic"}}>{LoginUserName}'s Profile</h2>
+      {/* {console.log("return Redux state from profile:", props.PostData)} */}
+      <h2 style={{ marginTop: "2%", marginLeft: "2%", fontStyle: "italic" }}>
+        {LoginUserName}'s Profile
+        <Button variant="link" onClick={CanvashandleShow} style={{textDecoration:"none",marginLeft:"2px"}}>
+          Edit
+        </Button>
+        <OffCanvasExample
+          show={showOffCanvas}
+          handleClose={CanvashandleClose}
+        />
+      </h2>
       <Button
         style={creatPostbtnStyle}
         variant="warning"
@@ -91,63 +165,20 @@ function Profile(props) {
       >
         Create New Post
       </Button>
-      <Modal show={show} onHide={handleClose} size="md">
-        <Modal.Header closeButton>
-          <Modal.Title>New Post</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <div style={PostDetailsWrap}>
-            <label style={labelStyle}>Post Name:</label>
-            <Input
-              name="PostName"
-              typ="text"
-              styl={InputStyle}
-              func={InputHandler}
-            />
-          </div>
-          <div style={PostDetailsWrap}>
-            <label style={labelStyle}>Post Price:</label>
-            <Input
-              name="PostPrice"
-              typ="Number"
-              styl={InputStyle}
-              func={InputHandler}
-            />
-          </div>
-          <div style={PostDetailsWrap}>
-            <label style={labelStyle}>Post Image Url:</label>
-            <Input
-              name="PostImage"
-              typ="text"
-              styl={InputStyle}
-              func={InputHandler}
-            />
-          </div>
-          <div style={PostDetailsWrap}>
-            <label style={labelStyle}>Description:</label>
-            <textarea
-              style={{ width: "60%", outline: "none" }}
-              onChange={InputHandler}
-              name="PostDesc"
-            />
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button variant="danger" size="sm" onClick={handleClose}>
-            Close
-          </Button>
-          <Button variant="success" size="sm" onClick={CreatePost}>
-            Create
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* create post Modal */}
+      <MyBootstrapModal
+        show2={show}
+        Title=" New Post"
+        btnText="Create"
+        mainFunc={CreatePost}
+        InputHandler={InputHandler}
+        handle2Close={handleClose}
+      ></MyBootstrapModal>
       {props.PostData.length == 0
         ? "No Post Created "
         : props.PostData.map((val, index) => {
-            // {console.log(val)}
-            if (val.UserId === Uid) {
+            // console.log('val',val.Uid)
+            if (val.Uid === Uid) {
               return (
                 <div
                   className="CardItem"
@@ -161,7 +192,7 @@ function Profile(props) {
                   <Card style={{ width: "18rem" }}>
                     <Card.Img
                       variant="top"
-                      src={val.PI}
+                      src={val.PostImage}
                       style={{
                         width: "100%",
                         height: "15vw",
@@ -169,24 +200,50 @@ function Profile(props) {
                       }}
                     />
                     <Card.Body>
-                      <Card.Title>{val.PName}</Card.Title>
+                      <Card.Title>{val.PostName}</Card.Title>
                       <Card.Text>
-                        Description: {val.PD} <br />
-                        Price:${val.PP}
+                        Description: {val.PostDesc} <br />
+                        Price:${val.PostPrice}
                       </Card.Text>
-                      <Button variant="primary" size="sm">Edit</Button>
+                      <div style={{ textAlign: "right" }}>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          style={{ paddingRight: "10%" }}
+                          onClick={() => editBtnHandler(index)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => DeletePost(index)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </Card.Body>
                   </Card>
                 </div>
               );
             }
           })}
+
+      {/* Edit Post Modal */}
+      <MyBootstrapModal
+        show2={show2}
+        Title="Edit Post"
+        handle2Close={handle2Close}
+        InputHandler={InputHandler}
+        btnText="Save Changes"
+        mainFunc={EditPost}
+      />
     </div>
   );
 }
 
 const mapReduxStatetoProps = (state) => {
-    console.log("Map Redux", state.PostData);
+    // console.log("Map Redux", state.PostData);
   return {
     PostData: state.PostData,
   };
